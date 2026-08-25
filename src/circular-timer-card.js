@@ -268,7 +268,13 @@ class CircularTimerCard extends LitElement {
 		rem_sec = Math.max(0, rem_sec);
 		var proc = rem_sec / d_sec;
 
-		var limitBin = Math.floor(this._bins * proc);
+		// A segment should stay fully visible for its whole time slice and
+		// only disappear once that slice has completely elapsed. Using
+		// Math.floor() here would remove a segment right at the start of
+		// its slice (e.g. after only ~1 second of a 3-second slice with a
+		// 60-bin/180-second timer), which looks wrong especially for the
+		// very last segment before the timer reaches zero.
+		var limitBin = Math.min(this._bins, Math.ceil(this._bins * proc));
 		var colorData = this._generateArcColorData(limitBin);
 		var textColor = this._getTextColor(proc);
 
