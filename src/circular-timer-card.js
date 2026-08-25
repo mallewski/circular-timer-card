@@ -16,6 +16,7 @@ class CircularTimerCard extends LitElement {
 		).getPropertyValue("--primary-color");
 		this._gradientColors = [this._defaultTimerFill, this._defaultTimerFill];
 		this._defaultTimerEmptyFill = "#fdfdfd00";
+		this._rotation = "clockwise";
 		this._secondaryInfoSize;
 		this._layout = "circle";
 
@@ -117,6 +118,10 @@ class CircularTimerCard extends LitElement {
 			this._defaultTimerEmptyFill = config.empty_bar_color;
 		}
 
+		if (config.rotation === "clockwise" || config.rotation === "anticlockwise") {
+			this._rotation = config.rotation;
+		}
+		
 		if (config.secondary_info_size) {
 			this._secondaryInfoSize = config.secondary_info_size;
 		} else {
@@ -361,8 +366,12 @@ class CircularTimerCard extends LitElement {
 	_generateArcColorData(limitBin) {
 		var data = [];
 		for (var i = 0; i < this._bins; i++) {
+			var filled =
+				this._rotation === "clockwise"
+					? i >= this._bins - limitBin
+					: i < limitBin;
 			var color;
-			if (i < limitBin) {
+			if (filled) {
 				color = this._colorScale(i / (this._bins - 1));
 			} else {
 				color = this._defaultTimerEmptyFill;
