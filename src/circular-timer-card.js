@@ -449,9 +449,10 @@ class CircularTimerCard extends LitElement {
 
 	_cancel_func() {
 		const stateObj = this.hass.states[this._config.entity];
-		this.hass.callService("timer", "cancel", {
-			entity_id: this._config.entity,
-		});
+		if (stateObj.state !== "idle") {
+			this.hass.callService("timer", "cancel", { entity_id: this._config.entity });
+		}
+		this._sawActive = false;
 	}
 
 	_moreInfo_func() {
