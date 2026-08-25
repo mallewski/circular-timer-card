@@ -17,6 +17,7 @@ class CircularTimerCard extends LitElement {
 		this._gradientColors = [this._defaultTimerFill, this._defaultTimerFill];
 		this._defaultTimerEmptyFill = "#fdfdfd00";
 		this._rotation = "clockwise";
+		this._frozenRemSec = null;
 		this._secondaryInfoSize;
 		this._layout = "circle";
 
@@ -121,6 +122,8 @@ class CircularTimerCard extends LitElement {
 		if (config.rotation === "clockwise" || config.rotation === "anticlockwise") {
 			this._rotation = config.rotation;
 		}
+
+		this._frozenRemSec = null;
 		
 		if (config.secondary_info_size) {
 			this._secondaryInfoSize = config.secondary_info_size;
@@ -225,16 +228,30 @@ class CircularTimerCard extends LitElement {
 					(Date.parse(this._stateObj.attributes.finishes_at) - new Date()) /
 					1000;
 			}
+			// Keep mirroring the locally computed value so a subsequent pause
+			// can reuse the exact same time source instead of switching to
+			// HA's server-computed "remaining" attribute (which can differ
+			// slightly due to client/server clock drift and cause a visible
+			// jump in the displayed countdown).
+			this._frozenRemSec = rem_sec;
 		} else {
 			if (this._stateObj.state == "paused") {
-				var a1 = this._stateObj.attributes.remaining.split(":");
-				if (this._direction == "countup") {
-					rem_sec = d_sec - (+a1[0] * 60 * 60 + +a1[1] * 60 + +a1[2]);
+				if (this._frozenRemSec !== null) {
+					rem_sec = this._frozenRemSec;
 				} else {
-					rem_sec = +a1[0] * 60 * 60 + +a1[1] * 60 + +a1[2];
+					// Fallback: the card was (re)loaded while the timer was
+					// already paused, so there is no locally computed value
+					// to reuse yet.
+					var a1 = this._stateObj.attributes.remaining.split(":");
+					if (this._direction == "countup") {
+						rem_sec = d_sec - (+a1[0] * 60 * 60 + +a1[1] * 60 + +a1[2]);
+					} else {
+						rem_sec = +a1[0] * 60 * 60 + +a1[1] * 60 + +a1[2];
+					}
 				}
 			} else {
 				rem_sec = d_sec;
+				this._frozenRemSec = null;
 			}
 		}
 		var proc = rem_sec / d_sec;
