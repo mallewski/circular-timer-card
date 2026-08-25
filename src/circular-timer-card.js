@@ -18,6 +18,7 @@ class CircularTimerCard extends LitElement {
 		this._defaultTimerEmptyFill = "#fdfdfd00";
 		this._rotation = "clockwise";
 		this._frozenRemSec = null;
+		this._sawActive = false;
 		this._secondaryInfoSize;
 		this._layout = "circle";
 
@@ -124,6 +125,7 @@ class CircularTimerCard extends LitElement {
 		}
 
 		this._frozenRemSec = null;
+		this._sawActive = false;
 		
 		if (config.secondary_info_size) {
 			this._secondaryInfoSize = config.secondary_info_size;
@@ -218,6 +220,7 @@ class CircularTimerCard extends LitElement {
 		var d_sec = +a[0] * 60 * 60 + +a[1] * 60 + +a[2];
 		var rem_sec;
 		if (this._stateObj.state == "active") {
+			this._sawActive = true;
 			if (this._direction == "countup") {
 				rem_sec =
 					d_sec -
@@ -250,10 +253,19 @@ class CircularTimerCard extends LitElement {
 					}
 				}
 			} else {
-				rem_sec = d_sec;
+				// Idle: if the timer has already run and finished/been
+				// cancelled, show 00:00:00 instead of jumping back to the
+				// full configured duration. A freshly configured card whose
+				// timer was never started still shows the full duration as
+				// a "ready" state.
+				rem_sec = this._sawActive ? 0 : d_sec;
 				this._frozenRemSec = null;
 			}
 		}
+		// Guard against a small negative value in the brief window right
+		// after finishes_at has passed but before HA has updated the state
+		// to idle, which would otherwise render as "-1:-1:-1".
+		rem_sec = Math.max(0, rem_sec);
 		var proc = rem_sec / d_sec;
 
 		var limitBin = Math.floor(this._bins * proc);
