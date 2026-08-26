@@ -270,11 +270,25 @@ class CircularTimerCard extends LitElement {
 
 		// A segment should stay fully visible for its whole time slice and
 		// only disappear once that slice has completely elapsed. Using
-		// Math.floor() here would remove a segment right at the start of
-		// its slice (e.g. after only ~1 second of a 3-second slice with a
-		// 60-bin/180-second timer), which looks wrong especially for the
-		// very last segment before the timer reaches zero.
-		var limitBin = Math.min(this._bins, Math.ceil(this._bins * proc));
+		// Math.floor() directly on the continuous proc value here would
+		// remove a segment right at the start of its slice (e.g. after
+		// only ~1 second of a 3-second slice with a 60-bin/180-second
+		// timer), which looks wrong especially for the very last segment
+		// before the timer reaches zero.
+		//
+		// However, the text display (_getTimeString) always rounds down
+		// to whole seconds, while rem_sec itself is continuous (updated
+		// roughly twice a second, including fractions of a second). Using
+		// the raw continuous rem_sec here would keep the last segment(s)
+		// lit for up to another full second *after* the text already
+		// shows 00:00:00 - barely noticeable on a multi-minute timer, but
+		// clearly visible on a short (e.g. 60 second or less) one.
+		// Flooring rem_sec to whole seconds first keeps segments in sync
+		// with exactly the same value the text is already showing.
+		var limitBin = Math.min(
+			this._bins,
+			Math.ceil((this._bins * Math.floor(rem_sec)) / d_sec),
+		);
 		var colorData = this._generateArcColorData(limitBin);
 		var textColor = this._getTextColor(proc);
 
